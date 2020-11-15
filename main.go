@@ -1,4 +1,4 @@
-package main
+package thormonitor
 
 import (
 	"bytes"
@@ -14,16 +14,12 @@ import (
 	"time"
 )
 
-
-
 type CommandResult struct {
 	Target string
 	Cmdout string
 	Status int32
 	Optype string
 }
-
-
 
 func MinerIPFunc(ipString string) []string {
 	t := ip_range_lib.NewIpRangeLib()
@@ -37,16 +33,13 @@ func MinerIPFunc(ipString string) []string {
 
 }
 
-
-
 // 执行命令主要函数方法
-func remoteExec(user,ip,password,opType string,port int, command string) (result CommandResult) {
+func remoteExec(user, ip, password, opType string, port int, command string) (result CommandResult) {
 	//fmt.Println(command)
 	var commandStr string
 
 	// 拼接目标地址 ip:port
 	sshHost := ip + ":" + strconv.Itoa(port)
-
 
 	client, err := ssh.Dial("tcp", sshHost, &ssh.ClientConfig{
 		User: user,
@@ -106,7 +99,6 @@ func remoteExec(user,ip,password,opType string,port int, command string) (result
 
 }
 
-
 func RunMonitor() {
 
 	var opType = "update"
@@ -120,17 +112,16 @@ func RunMonitor() {
 	case "scan":
 		cmdCommand = "grep 'miner' 桌面/钱包配置.sh"
 	case "reboot":
-		cmdCommand =  monitor.RebootCommand(conf.Password)
+		cmdCommand = monitor.RebootCommand(conf.Password)
 	case "stats":
-		cmdCommand =  monitor.ResponseCommand(100)
+		cmdCommand = monitor.ResponseCommand(100)
 	case "update":
-		cmdCommand =  monitor.UpdateConfig("39.104.86.166:3073","39.104.86.166:3072")
+		cmdCommand = monitor.UpdateConfig("39.104.86.166:3073", "39.104.86.166:3072")
 	default:
 		cmdCommand = "grep 'miner' 桌面/钱包配置.sh"
 	}
 
 	ServerIp := MinerIPFunc(conf.IpRange)
-
 
 	outchan := make(chan CommandResult)
 	var wg_command sync.WaitGroup
@@ -143,7 +134,7 @@ func RunMonitor() {
 		target := t + " (" + conf.User + "@" + t + ")"
 		go func(dst, user, ip, command string, out chan CommandResult) {
 			defer wg_command.Done()
-			result := remoteExec(conf.User, ip, conf.Password,opType, conf.Port, cmdCommand)
+			result := remoteExec(conf.User, ip, conf.Password, opType, conf.Port, cmdCommand)
 			out <- CommandResult{
 				dst,
 				result.Cmdout,
@@ -152,7 +143,6 @@ func RunMonitor() {
 			}
 		}(target, conf.User, t, cmdCommand, outchan)
 	}
-
 
 	// 开启读取线程
 	wg_processing.Add(1)
@@ -179,10 +169,4 @@ func RunMonitor() {
 	wg_processing.Wait()
 
 	fmt.Printf("miners count:%d", countResult)
-}
-
-func main() {
-
-	RunMonitor()
-
 }
